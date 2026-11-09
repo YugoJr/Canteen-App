@@ -3,30 +3,15 @@ import pool from "../config/db.js";
 import jwt from "jsonwebtoken";
 import { AppError } from "../utils/AppError.js";
 import { validateRegister } from "../validators/authValidator.js";
+import { registerUser } from "../services/authService.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
-export async function register(req, res) {
-  try {
-    const { name, email, password } = validateRegister(req.body);
+export const register = asyncHandler(async (req, res) => {
+  const data = validateRegister(req.body);
+  const user = await registerUser(data);
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const [result] = await pool.query(
-      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-      [name, email, passwordHash]
-    );
-
-    res.status(201).json({ id: result.insertId, name, email });
-  } catch (error) {
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-    if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ message: "This email is already registered." });
-    }
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong on the server." });
-  }
-}
+  res.status(201).json(user);
+});
 
 export async function login(req, res) {
   const { email, password } = req.body || {};
