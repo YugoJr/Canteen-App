@@ -1,43 +1,31 @@
 import bcrypt from "bcrypt";
 import pool from "../config/db.js";
 import jwt from "jsonwebtoken";
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { AppError } from "../utils/AppError.js";
+import { validateRegister } from "../validators/authValidator.js";
 
 export async function register(req, res) {
-    const { name, email, password } = req.body || {};
+  try {
+    const { name, email, password } = validateRegister(req.body);
 
-    if (typeof name !== "string" || name.trim() === "") {
-        return res.status(400).json({ message: "Name is Required." });
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const [result] = await pool.query(
+      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+      [name, email, passwordHash]
+    );
+
+    res.status(201).json({ id: result.insertId, name, email });
+  } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
     }
-    if (typeof email !== "string" || !EMAIL_PATTERN.test(email.trim())) {
-        return res.status(400).json({ message: "Valid email is Required." });
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ message: "This email is already registered." });
     }
-    if (typeof password !== "string" || password.length < 8) {
-        return res
-        .status(400)
-        .json({ message: "Password must be at least 8 characters long." });
-    }
-
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    try {
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const [result] = await pool.query(
-            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-            [cleanName, cleanEmail, passwordHash]
-        );
-
-        res.status(201).json({ id: result.insertId, name: cleanName, email: cleanEmail });
-    } catch (error) {
-        if (error.code === "ER_DUP_ENTRY") {
-            return res.status(409).json({ message: "Email already exists." });
-        }
-        console.error(error);
-        res.status(500).json({ message: "Internal server error." });
-    }
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong on the server." });
+  }
 }
 
 export async function login(req, res) {
