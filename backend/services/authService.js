@@ -45,3 +45,17 @@ export async function loginUser({ email, password }) {
     user: { id: user.id, name: user.name, email: user.email },
   };
 }
+
+export async function getUserById(id) {
+  const [rows] = await pool.query(
+    "SELECT id, name, email FROM users WHERE id = ?",
+    [id]
+  );
+  const user = rows[0];
+
+  if (!user) {
+    throw new AppError("Account no longer exists.", 401);
+  }
+
+  return user;
+}
