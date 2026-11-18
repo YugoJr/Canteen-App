@@ -1,4 +1,5 @@
 import { AppError } from "../utils/AppError.js";
+import { isRealDate } from "../utils/dateUtils.js";
 
 const WORKER_TYPES = ["dorm", "non_dorm", "dorm_outside_province"];
 const TYPE_MESSAGE = `must be one of: ${WORKER_TYPES.join(", ")}.`;
@@ -11,14 +12,6 @@ function cleanName(name) {
     throw new AppError("Name must be 100 characters or fewer.", 400);
   }
   return name.trim();
-}
-
-function isRealDate(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 export function validateId(value) {
