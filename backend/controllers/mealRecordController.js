@@ -2,10 +2,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   validateRecordId,
   validateCreateMealRecord,
+  validateChecklistQuery,
 } from "../validators/mealRecordValidator.js";
 import {
   createMealRecord,
   deleteMealRecord,
+  getChecklist,
 } from "../services/mealRecordService.js";
 
 export const tickMeal = asyncHandler(async (req, res) => {
@@ -20,4 +22,11 @@ export const untickMeal = asyncHandler(async (req, res) => {
   await deleteMealRecord(id);
 
   res.status(200).json({ message: "Meal record deleted." });
+});
+
+export const getDailyChecklist = asyncHandler(async (req, res) => {
+  const { date } = validateChecklistQuery(req.query);
+  const checklist = await getChecklist(date);
+
+  res.status(200).json(checklist);
 });

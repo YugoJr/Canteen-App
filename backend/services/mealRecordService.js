@@ -59,3 +59,39 @@ export async function deleteMealRecord(id) {
     throw new AppError("Meal record not found.", 404);
   }
 }
+
+export async function getChecklist(date) {
+  const [workers] = await pool.query(
+    `SELECT id, name, worker_type FROM workers
+     WHERE worker_type IN ('dorm', 'dorm_outside_province')
+       AND (left_date IS NULL OR left_date >= ?)
+     ORDER BY name`,
+    [date]
+  );
+
+  const [records] = await pool.query(
+    "SELECT id, worker_id, meal_slot FROM meal_records WHERE meal_date = ?",
+    [date]
+  );
+
+  const ticksByWorker = new Map();
+  for (const record of records) {
+    if (!ticksByWorker.has(record.worker_id)) {
+      ticksByWorker.set(record.worker_id, []);
+    }
+    ticksByWorker
+      .get(record.worker_id)
+      .push({ id: record.id, meal_slot: record.meal_slot });
+  }
+
+  return {
+    date,
+    workers: workers.map((worker) => ({
+      id: worker.id,
+      name: worker.name,
+      worker_type: worker.worker_type,
+      allowed_slots: ALLOWED_SLOTS[worker.worker_type],
+      ticks: ticksByWorker.get(worker.id) || [],
+    })),
+  };
+}

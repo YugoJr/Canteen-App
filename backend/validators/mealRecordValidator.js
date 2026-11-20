@@ -29,3 +29,20 @@ export function validateCreateMealRecord(body) {
 
   return { workerId: worker_id, mealDate: meal_date, mealSlot: meal_slot };
 }
+
+
+export function validateChecklistQuery(query) {
+  const { date } = query || {};
+
+  if (date === undefined) {
+    return { date: todayString() };
+  }
+  if (!isRealDate(date)) {
+    throw new AppError("date must be a date like 2026-11-30.", 400);
+  }
+  if (date > todayString()) {
+    throw new AppError("date cannot be in the future.", 400);
+  }
+
+  return { date };
+}
