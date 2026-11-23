@@ -12,3 +12,16 @@ export function todayString() {
   const day = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${month}-${day}`;
 }
+
+export const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function monthRange(month) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const start = `${month}-01`;
+  const end =
+    monthNumber === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(monthNumber + 1).padStart(2, "0")}-01`;
+
+  return { start, end };
+}
