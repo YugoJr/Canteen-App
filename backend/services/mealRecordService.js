@@ -95,3 +95,52 @@ export async function getChecklist(date) {
     })),
   };
 }
+
+export async function listMealRecords({ month, page, limit, workerId, mealSlot }) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const start = `${month}-01`;
+  const end =
+    monthNumber === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(monthNumber + 1).padStart(2, "0")}-01`;
+
+  const conditions = ["mr.meal_date >= ?", "mr.meal_date < ?"];
+  const params = [start, end];
+
+  if (workerId !== undefined) {
+    conditions.push("mr.worker_id = ?");
+    params.push(workerId);
+  }
+  if (mealSlot !== undefined) {
+    conditions.push("mr.meal_slot = ?");
+    params.push(mealSlot);
+  }
+
+  const where = conditions.join(" AND ");
+
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) AS total FROM meal_records mr WHERE ${where}`,
+    params
+  );
+  const total = countRows[0].total;
+
+  const offset = (page - 1) * limit;
+  const [rows] = await pool.query(
+    `SELECT mr.id, mr.worker_id, w.name AS worker_name, mr.meal_date,
+            mr.meal_slot, mr.worker_type, mr.created_at
+     FROM meal_records mr
+     JOIN workers w ON w.id = mr.worker_id
+     WHERE ${where}
+     ORDER BY mr.meal_date DESC, mr.id DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  return {
+    data: rows,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+}

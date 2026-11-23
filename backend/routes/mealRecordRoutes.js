@@ -1,11 +1,16 @@
 import { Router } from "express";
-import { tickMeal, untickMeal } from "../controllers/mealRecordController.js";
+import {
+  getMealRecords,
+  tickMeal,
+  untickMeal,
+} from "../controllers/mealRecordController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
 router.use(authenticate);
 
+router.get("/", getMealRecords);
 router.post("/", tickMeal);
 router.delete("/:id", untickMeal);
 

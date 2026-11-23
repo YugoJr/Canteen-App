@@ -3,11 +3,13 @@ import {
   validateRecordId,
   validateCreateMealRecord,
   validateChecklistQuery,
+  validateListMealRecords,
 } from "../validators/mealRecordValidator.js";
 import {
   createMealRecord,
   deleteMealRecord,
   getChecklist,
+  listMealRecords,
 } from "../services/mealRecordService.js";
 
 export const tickMeal = asyncHandler(async (req, res) => {
@@ -29,4 +31,11 @@ export const getDailyChecklist = asyncHandler(async (req, res) => {
   const checklist = await getChecklist(date);
 
   res.status(200).json(checklist);
+});
+
+export const getMealRecords = asyncHandler(async (req, res) => {
+  const filters = validateListMealRecords(req.query);
+  const result = await listMealRecords(filters);
+
+  res.status(200).json(result);
 });

@@ -46,3 +46,50 @@ export function validateChecklistQuery(query) {
 
   return { date };
 }
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function parseWholeNumber(value, name, { min, max }) {
+  const number = Number(value);
+
+  if (
+    !Number.isInteger(number) ||
+    number < min ||
+    (max !== undefined && number > max)
+  ) {
+    const range = max !== undefined ? `between ${min} and ${max}` : `${min} or more`;
+    throw new AppError(`${name} must be a whole number ${range}.`, 400);
+  }
+
+  return number;
+}
+
+export function validateListMealRecords(query) {
+  const { month, page, limit, worker_id, meal_slot } = query || {};
+
+  const cleanMonth = month === undefined ? todayString().slice(0, 7) : month;
+  if (typeof cleanMonth !== "string" || !MONTH_PATTERN.test(cleanMonth)) {
+    throw new AppError("month must look like 2026-11.", 400);
+  }
+
+  const filters = {
+    month: cleanMonth,
+    page: page === undefined ? 1 : parseWholeNumber(page, "page", { min: 1 }),
+    limit:
+      limit === undefined
+        ? 10
+        : parseWholeNumber(limit, "limit", { min: 1, max: 100 }),
+  };
+
+  if (worker_id !== undefined) {
+    filters.workerId = parseWholeNumber(worker_id, "worker_id", { min: 1 });
+  }
+  if (meal_slot !== undefined) {
+    if (!MEAL_SLOTS.includes(meal_slot)) {
+      throw new AppError(`meal_slot must be one of: ${MEAL_SLOTS.join(", ")}.`, 400);
+    }
+    filters.mealSlot = meal_slot;
+  }
+
+  return filters;
+}
